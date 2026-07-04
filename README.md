@@ -41,6 +41,10 @@ arrays — no vision model, no server):
 **Editor** (`src/lib/graph.ts`, `src/components/EditorCanvas.tsx`) operates on
 the shared-edge graph, so the panel always stays gap-free and tiling:
 
+- **Line style** knob (Detailed / Smooth / Flowing / Straight) controls how
+  aggressively lines are simplified — from faithful tracing to long flowing
+  curves to plain straight segments that keep only the impression of the
+  image and are far easier to cut.
 - **Select** (V): click a piece; drag line points / junction nodes — both
   adjacent pieces update together. Grab any lead line to bend it. Click a
   palette swatch to recolor the selected piece.
@@ -59,8 +63,9 @@ minimum 1 sq ft), with optional sheet-size and price inputs.
 the pattern tiled across Letter/A4 pages **in true millimetres**
 (1 mm = 72/25.4 pt, never fit-to-page):
 
-- outlines only, numbered pieces, came allowance applied by insetting each
-  piece by half the came width via ClipperJS (no inset for copper foil),
+- numbered pieces with **solid black lead lines**: each shared arc is drawn
+  once at full came width, so the white edge of the stroke IS the cut line
+  (each piece is trimmed by half the came width; thin line for copper foil),
 - 15 mm page overlap with dashed match lines, registration crosses printed at
   identical physical positions on both adjacent pages, corner crop marks,
   A1/A2/B1… page grid with neighbor hints,

@@ -76,6 +76,10 @@ export interface PieceWarning {
 }
 
 export type Units = "mm" | "cm" | "in";
+/** How aggressively lines are simplified/smoothed. "detailed" follows the
+ * image closely; "flowing" gives long easy curves; "straight" reduces lines
+ * to straight segments — impression of the image, much easier to cut. */
+export type Smoothness = "detailed" | "smooth" | "flowing" | "straight";
 export type Assembly = "lead" | "foil";
 export type Skill = "beginner" | "intermediate" | "advanced";
 export type PageSize = "letter" | "a4";
@@ -87,6 +91,7 @@ export interface Settings {
   colorBucket: "lt5" | "5to10" | "10to20";
   colorCount: number; // fine slider within bucket range
   density: "low" | "medium" | "high";
+  smoothness: Smoothness;
   assembly: Assembly;
   cameWidthIn: number; // came width in inches (e.g. 3/16)
   skill: Skill;
@@ -111,6 +116,7 @@ export const DEFAULT_SETTINGS: Settings = {
   colorBucket: "5to10",
   colorCount: 7,
   density: "medium",
+  smoothness: "smooth",
   assembly: "lead",
   cameWidthIn: 3 / 16,
   skill: "intermediate",

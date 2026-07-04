@@ -89,6 +89,7 @@ export const useApp = create<AppState>((set, get) => ({
           image,
           colorCount: settings.colorCount,
           density: settings.density,
+          smoothness: settings.smoothness,
           aspect,
         });
         const { faces, warnings } = rebuildFaces(graph, {

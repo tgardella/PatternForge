@@ -192,6 +192,41 @@ export default function ControlsPanel() {
         </div>
       </Field>
 
+      {/* line smoothness */}
+      <Field label="Line style (cuttability)">
+        <div className="flex gap-1">
+          {(
+            [
+              ["detailed", "Detailed"],
+              ["smooth", "Smooth"],
+              ["flowing", "Flowing"],
+              ["straight", "Straight"],
+            ] as const
+          ).map(([val, label]) => (
+            <button
+              key={val}
+              className={`flex-1 rounded-md border px-1 py-1.5 text-xs ${
+                settings.smoothness === val
+                  ? "border-blue-500 bg-blue-500/10 font-semibold text-blue-600 dark:text-blue-400"
+                  : "border-neutral-300 hover:bg-neutral-100 dark:border-neutral-600 dark:hover:bg-neutral-800"
+              }`}
+              title={
+                val === "detailed"
+                  ? "Follows the image closely — hardest to cut"
+                  : val === "smooth"
+                    ? "Gentle curves (default)"
+                    : val === "flowing"
+                      ? "Long easy curves — much easier to cut"
+                      : "Straight segments only — impression of the image, easiest to cut"
+              }
+              onClick={() => setSettings({ smoothness: val })}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </Field>
+
       {/* assembly */}
       <div className="grid grid-cols-2 gap-2">
         <Field label="Assembly">

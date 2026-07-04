@@ -7,12 +7,11 @@
 // Structure: [plan page] [legend page(s)] [tiled pattern pages A1, A2, ... ]
 
 import {
-  PDFDocument, PDFFont, PDFPage, StandardFonts, rgb,
+  PDFDocument, PDFFont, PDFPage, StandardFonts, rgb, LineCapStyle,
   pushGraphicsState, popGraphicsState, moveTo, lineTo, closePath, clip, endPath,
 } from "pdf-lib";
 import type { Face, PatternGraph, Pt, Settings } from "../types";
 import { estimateGlass, fmtArea } from "../estimate";
-import { offsetPolygonMm } from "./offset";
 
 const MM2PT = 72 / 25.4;
 const mm = (v: number) => v * MM2PT;
@@ -36,9 +35,7 @@ interface Piece {
   number: number;
   colorIdx: number;
   hex: string;
-  /** outline(s) in physical mm after came allowance (may split/vanish) */
-  outlines: Pt[][];
-  /** original outline in mm (fallback + label sizing) */
+  /** outline in physical mm (thumbnail + label sizing) */
   raw: Pt[];
   labelMm: Pt;
   areaMm2: number;
@@ -69,25 +66,30 @@ export async function buildPatternPdf(input: ExportInput): Promise<Uint8Array> {
   const cols = Math.max(1, Math.ceil((panelW - printW) / stepX + 1e-9) + 1);
   const rows = Math.max(1, Math.ceil((panelH - printH) / stepY + 1e-9) + 1);
 
-  // ---- pieces in physical mm, with came allowance -----------------------
-  const inset =
-    settings.assembly === "lead" ? -(settings.cameWidthIn * 25.4) / 2 : 0;
+  // ---- pieces in physical mm --------------------------------------------
   const pieces: Piece[] = faces.map((f, i) => {
     const raw = f.outer.pts.map((p) => ({ x: p.x * pxToMm, y: p.y * pxToMm }));
-    let outlines = inset !== 0 ? offsetPolygonMm(raw, inset) : [raw];
-    if (outlines.length === 0) outlines = [raw]; // piece too small to inset
     const region = graph.regions.get(f.regionId);
     const colorIdx = region?.colorIdx ?? 0;
     return {
       number: i + 1,
       colorIdx,
       hex: graph.palette[colorIdx]?.hex ?? "#888888",
-      outlines,
       raw,
       labelMm: { x: f.labelPos.x * pxToMm, y: f.labelPos.y * pxToMm },
       areaMm2: f.area * pxToMm * pxToMm,
     };
   });
+
+  // Lead/foil lines: each shared arc is drawn ONCE as a solid black stroke.
+  // For lead the stroke is the full came width, so the white area left on
+  // each side is the piece trimmed by half the came width — the stroke edge
+  // IS the cut line. For foil a thin line marks the shared cut.
+  const lineWidthMm =
+    settings.assembly === "lead" ? settings.cameWidthIn * 25.4 : 1.2;
+  const arcsMm = [...graph.arcs.values()].map((a) =>
+    a.pts.map((p) => ({ x: p.x * pxToMm, y: p.y * pxToMm }))
+  );
 
   const est = estimateGlass(graph, faces, settings, pxToMm);
 
@@ -306,19 +308,21 @@ export async function buildPatternPdf(input: ExportInput): Promise<Uint8Array> {
         endPath()
       );
 
-      // piece outlines ("coloring book": outline only, no fill)
+      // lead/foil lines: solid black, came-width strokes on the shared arcs
+      const halfLine = lineWidthMm / 2;
+      for (const arcPts of arcsMm) {
+        if (ringOutsideTile(arcPts, tileX - halfLine, tileY - halfLine, printW + lineWidthMm, printH + lineWidthMm)) continue;
+        const d = openPathD(arcPts);
+        p.drawSvgPath(d, {
+          x: X(0),
+          y: mm(page.h) - mm(-tileY + MARGIN_MM),
+          scale: MM2PT,
+          borderColor: rgb(0, 0, 0),
+          borderWidth: mm(lineWidthMm),
+          borderLineCap: LineCapStyle.Round,
+        });
+      }
       for (const piece of pieces) {
-        for (const ring of piece.outlines) {
-          if (ringOutsideTile(ring, tileX, tileY, printW, printH)) continue;
-          const d = svgPathD(ring);
-          p.drawSvgPath(d, {
-            x: X(0),
-            y: mm(page.h) - mm(-tileY + MARGIN_MM),
-            scale: MM2PT,
-            borderColor: rgb(0, 0, 0),
-            borderWidth: 1.1,
-          });
-        }
         // piece number
         const fontMm = Math.max(2.6, Math.min(8, 0.22 * Math.sqrt(piece.areaMm2)));
         const sizePt = mm(fontMm);
@@ -430,6 +434,10 @@ function svgPathD(pts: Pt[]): string {
   return (
     `M ${pts.map((p) => `${p.x.toFixed(3)} ${p.y.toFixed(3)}`).join(" L ")} Z`
   );
+}
+
+function openPathD(pts: Pt[]): string {
+  return `M ${pts.map((p) => `${p.x.toFixed(3)} ${p.y.toFixed(3)}`).join(" L ")}`;
 }
 
 function ringOutsideTile(

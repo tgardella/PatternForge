@@ -16,6 +16,7 @@ export interface PipelineInput {
   image: RGBImage;
   colorCount: number;
   density: Settings["density"];
+  smoothness?: Settings["smoothness"];
   /** finished W/H — image is center-cropped to this aspect ratio */
   aspect: number;
 }
@@ -35,6 +36,6 @@ export function generatePattern(input: PipelineInput): PatternGraph {
   }
 
   const traced = traceBoundaries(rm);
-  traced.arcs = simplifyArcs(traced.arcs);
+  traced.arcs = simplifyArcs(traced.arcs, input.smoothness ?? "smooth");
   return buildGraph(traced, palette, rm.regionColor);
 }
