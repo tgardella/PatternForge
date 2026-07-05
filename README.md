@@ -78,3 +78,5 @@ the pattern tiled across Letter/A4 pages **in true millimetres**
   synthetic image.
 - `node scripts/pdf-to-html.mjs in.pdf out.html` — self-contained pdf.js
   viewer for visually checking the PDF in a headless browser.
+
+  TESTING a PR workflow
